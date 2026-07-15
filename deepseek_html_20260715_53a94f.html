@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>HELLFIRE AUTO</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: transparent;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        /* FLOATING BUTTON */
+        #float-btn {
+            position: fixed;
+            bottom: 30px;
+            left: 30px;
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #0a0a12, #1a1a2e);
+            border: 3px solid #00ff88;
+            color: #00ff88;
+            font-size: 28px;
+            cursor: pointer;
+            z-index: 999999;
+            box-shadow: 0 0 40px rgba(0, 255, 136, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            user-select: none;
+        }
+        #float-btn.active {
+            border-color: #ff3355;
+            box-shadow: 0 0 40px rgba(255, 51, 85, 0.3);
+        }
+        #float-btn.auto {
+            border-color: #ffaa00;
+            box-shadow: 0 0 40px rgba(255, 170, 0, 0.3);
+        }
+
+        /* TOOL PANEL */
+        #tool-panel {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 95%;
+            max-width: 420px;
+            max-height: 90vh;
+            background: rgba(10, 10, 18, 0.98);
+            border: 3px solid #00ff88;
+            border-radius: 20px;
+            padding: 20px;
+            z-index: 999998;
+            box-shadow: 0 0 60px rgba(0, 255, 136, 0.2);
+            display: none;
+            overflow-y: auto;
+            backdrop-filter: blur(20px);
+        }
+        #tool-panel.show { display: block; }
+
+        .status-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 12px;
+            background: rgba(0, 255, 136, 0.05);
+            border-radius: 12px;
+            border: 1px solid rgba(0, 255, 136, 0.1);
+            margin-bottom: 12px;
+        }
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #888;
+            transition: all 0.3s;
+        }
+        .status-dot.active { background: #00ff88; box-shadow: 0 0 20px #00ff88; }
+        .status-dot.auto { background: #ffaa00; box-shadow: 0 0 20px #ffaa00; }
+        .status-text { font-size: 11px; font-weight: bold; color: #888; letter-spacing: 1px; }
+
+        /* AUTO TOGGLE */
+        .auto-toggle {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(255, 170, 0, 0.05);
+            border: 1px solid rgba(255, 170, 0, 0.2);
+            border-radius: 10px;
+            padding: 8px 12px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .auto-toggle:hover { background: rgba(255, 170, 0, 0.1); }
+        .auto-toggle.active { border-color: #ffaa00; background: rgba(255, 170, 0, 0.1); }
+        .auto-toggle .label { font-size: 12px; font-weight: bold; color: #ffaa00; }
+        .auto-toggle .switch {
+            width: 40px;
+            height: 22px;
+            background: #1a1a2e;
+            border-radius: 11px;
+            position: relative;
+            transition: all 0.3s;
+            margin-left: auto;
+        }
+        .auto-toggle .switch::after {
+            content: '';
+            position: absolute;
+            width: 18px;
+            height: 18px;
+            background: #888;
+            border-radius: 50%;
+            top: 2px;
+            left: 2px;
+            transition: all 0.3s;
+        }
+        .auto-toggle.active .switch { background: #ffaa00; }
+        .auto-toggle.active .switch::after {
+            left: 20px;
+            background: #000;
+        }
+
+        .preset-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4px;
+            margin: 8px 0;
+        }
+        .preset-btn {
+            padding: 6px 8px;
+            font-size: 9px;
+            font-weight: bold;
+            background: rgba(0, 255, 136, 0.05);
+            border: 1px solid rgba(0, 255, 136, 0.2);
+            color: #00ff88;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: left;
+            line-height: 1.2;
+        }
+        .preset-btn:hover { background: rgba(0, 255, 136, 0.1); border-color: #00ff88; }
+        .preset-btn.active {
+            background: #00ff88;
+            color: #000;
+            box-shadow: 0 0 20px rgba(0, 255, 136, 0.5);
+        }
+
+        .control-group { margin: 8px 0; }
+        .control-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            font-weight: bold;
+            color: #00ff88;
+            margin-bottom: 4px;
+        }
+        .control-label input[type="number"] {
+            width: 65px;
+            background: rgba(0, 255, 136, 0.05);
+            border: 1px solid rgba(0, 255, 136, 0.3);
+            color: #00ff88;
+            border-radius: 6px;
+            padding: 2px 6px;
+            font-size: 11px;
+            text-align: center;
+        }
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, #00ff88 var(--v,0%), #1a1a2e var(--v,0%));
+            border-radius: 4px;
+            outline: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            background: #0a0a12;
+            border: 2px solid #00ff88;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 15px rgba(0, 255, 136, 0.3);
+        }
+
+        .btn-close {
+            width: 100%;
+            padding: 10px;
+            margin-top: 10px;
+            background: rgba(255, 51, 85, 0.1);
+            border: 1px solid rgba(255, 51, 85, 0.3);
+            color: #ff3355;
+            border-radius: 10px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-close:hover { background: rgba(255, 51, 85, 0.2); }
+
+        #tool-panel::-webkit-scrollbar { width: 4px; }
+        #tool-panel::-webkit-scrollbar-thumb { background: rgba(0, 255, 136, 0.3); border-radius: 4px; }
+
+        @media (max-width: 480px) {
+            #tool-panel { width: 98%; max-height: 95vh; padding: 15px; }
+            #float-btn { width: 56px; height: 56px; font-size: 24px; bottom: 20px; left: 20px; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- FLOATING BUTTON -->
+<button id="float-btn">🎤</button>
+
+<!-- TOOL PANEL -->
+<div id="tool-panel">
+    <div class="status-bar">
+        <div style="display:flex;align-items:center;gap:8px;">
+            <div class="status-dot" id="status-dot"></div>
+            <span class="status-text" id="status-text">TẮT</span>
+        </div>
+        <span style="font-size:10px;color:#00ff88;font-weight:bold;">HELLFIRE</span>
+    </div>
+
+    <!-- AUTO TOGGLE -->
+    <div class="auto-toggle" id="auto-toggle">
+        <span class="label">🤖 TỰ ĐỘNG KHI CALL</span>
+        <div class="switch"></div>
+    </div>
+
+    <!-- Presets -->
+    <div class="preset-grid" id="preset-grid"></div>
+
+    <!-- Controls -->
+    <div id="controls-container"></div>
+
+    <button class="btn-close" id="close-btn">✕ ĐÓNG</button>
+</div>
+
+<script>
+// ============================================
+// HELLFIRE AUTO - TỰ ĐỘNG ÁP DỤNG CONFIG KHI CALL
+// ============================================
+
+(function() {
+    'use strict';
+    if (window.__HELLFIRE_AUTO__) return;
+    window.__HELLFIRE_AUTO__ = true;
+
+    console.log('🔥 HELLFIRE AUTO - Tự động khi call');
+
+    // ======== PARAMETERS ========
+    const P = {
+        preGain: 1.0,
+        drive: 0.15,
+        crush: 0.0,
+        width: 0.15,
+        postGain: 1.5,
+        bass: 0.15,
+        treble: 0.25,
+        echo: 0.08,
+        gateThreshold: 0.008,
+        deEsser: 0.3
+    };
+
+    // ======== PRESETS ========
+    const PRESETS = {
+        '🔥 Lấn Át': { preGain: 200, drive: 0.8, crush: 0.4, width: 0.6, postGain: 5, bass: 0.9, treble: 0.5, echo: 0.2, gateThreshold: 0.002, deEsser: 0.05 },
+        '💀 Ác Quỷ': { preGain: 300, drive: 0.9, crush: 0.7, width: 0.4, postGain: 6, bass: 1.0, treble: 0.1, echo: 0.25, gateThreshold: 0.002, deEsser: 0.08 },
+        '🌀 Echo': { preGain: 100, drive: 0.3, crush: 0, width: 0.5, postGain: 3, bass: 0.3, treble: 0.4, echo: 0.8, gateThreshold: 0.005, deEsser: 0.1 },
+        '💥 Bom Nổ': { preGain: 800, drive: 1.0, crush: 0.8, width: 1.0, postGain: 10, bass: 1.0, treble: 0.8, echo: 0.5, gateThreshold: 0.001, deEsser: 0.01 },
+        '🤖 Robot': { preGain: 350, drive: 1.0, crush: 0.9, width: 0, postGain: 6, bass: 0, treble: 1.0, echo: 0.3, gateThreshold: 0.001, deEsser: 0 },
+        '🍼 Baby': { preGain: 15, drive: 0, crush: 0, width: 0.1, postGain: 1.2, bass: 0, treble: 0.6, echo: 0.05, gateThreshold: 0.008, deEsser: 0.5 }
+    };
+
+    // ======== STATE ========
+    let isActive = false;
+    let isAutoMode = false;
+    let selectedPreset = null;
+
+    // ======== AUDIO WORKLET ========
+    const WORKLET = `
+    class HellfireAuto extends AudioWorkletProcessor {
+        static get parameterDescriptors() {
+            return [
+                { name:'preGain', defaultValue:1, min:0, max:99999999 },
+                { name:'drive', defaultValue:0, min:0, max:99999999 },
+                { name:'crush', defaultValue:0, min:0, max:99999999 },
+                { name:'width', defaultValue:0, min:0, max:99999999 },
+                { name:'postGain', defaultValue:1, min:0, max:99999999 },
+                { name:'bass', defaultValue:0, min:0, max:99999999 },
+                { name:'treble', defaultValue:0, min:0, max:99999999 },
+                { name:'echo', defaultValue:0, min:0, max:99999999 },
+                { name:'gateThreshold', defaultValue:0.005, min:0, max:99999999 },
+                { name:'deEsser', defaultValue:0, min:0, max:99999999 }
+            ];
+        }
+        constructor() {
+            super();
+            this._echoBufL = 0;
+            this._gateL = 1;
+        }
+        _sat(x, k) {
+            if (k < 0.001) return x;
+            const drive = k * 20;
+            return Math.atan(x * drive) / Math.atan(drive);
+        }
+        _echo(x, amount) {
+            if (amount < 0.001) return x;
+            const wet = amount * 0.4;
+            const out = x + this._echoBufL * wet;
+            this._echoBufL = x * 0.3 + this._echoBufL * 0.7;
+            return out;
+        }
+        process(inputs, outputs, params) {
+            const inp = inputs[0];
+            const out = outputs[0];
+            if (!inp || inp.length === 0) return true;
+
+            const preGain = params.preGain[0];
+            const drive = params.drive[0];
+            const crush = params.crush[0];
+            const width = params.width[0];
+            const postGain = params.postGain[0];
+            const bass = params.bass[0];
+            const treble = params.treble[0];
+            const echo = params.echo[0];
+            const gateTh = params.gateThreshold[0];
+            const deEsser = params.deEsser[0];
+
+            for (let i = 0; i < inp[0].length; i++) {
+                let L = inp[0][i] * preGain;
+                let R = (inp[1] ? inp[1][i] : inp[0][i]) * preGain;
+
+                // Gate
+                if (gateTh > 0.0001) {
+                    const rms = Math.abs(L);
+                    if (rms > gateTh) this._gateL = Math.min(1, this._gateL + 0.01);
+                    else this._gateL = Math.max(0, this._gateL - 0.001);
+                    L *= this._gateL;
+                    R *= this._gateL;
+                }
+
+                // Bass
+                if (bass > 0.001) {
+                    L *= (1 + bass * 1.5);
+                    R *= (1 + bass * 1.5);
+                }
+
+                // Treble
+                if (treble > 0.001) {
+                    L *= (1 + treble * 2);
+                    R *= (1 + treble * 2);
+                }
+
+                // Drive
+                L = this._sat(L, drive);
+                R = this._sat(R, drive);
+
+                // Crush
+                if (crush > 0) {
+                    const th = Math.max(0.001, 1.0 - crush * 0.98);
+                    L = Math.max(-th, Math.min(th, L)) / th;
+                    R = Math.max(-th, Math.min(th, R)) / th;
+                }
+
+                // Width
+                if (width > 0) {
+                    const mid = (L + R) * 0.5;
+                    const side = (L - R) * 0.5 * (1 + width * 1.5);
+                    L = mid + side;
+                    R = mid - side;
+                }
+
+                // Echo
+                L = this._echo(L, echo);
+                R = this._echo(R, echo);
+
+                L *= postGain;
+                R *= postGain;
+
+                // Soft limit
+                if (Math.abs(L) > 0.95) {
+                    const sign = L > 0 ? 1 : -1;
+                    L = sign * (0.95 + (Math.abs(L) - 0.95) * 0.5);
+                }
+                if (Math.abs(R) > 0.95) {
+                    const sign = R > 0 ? 1 : -1;
+                    R = sign * (0.95 + (Math.abs(R) - 0.95) * 0.5);
+                }
+
+                out[0][i] = L || 0;
+                if (out[1]) out[1][i] = R || 0;
+            }
+            return true;
+        }
+    }
+    registerProcessor('hellfireauto', HellfireAuto);
+    `;
+
+    // ======== AUDIO ENGINE ========
+    let audioCtx = null;
+    let sourceNode = null;
+    let processorNode = null;
+    let destNode = null;
+    let stream = null;
+    let isProcessing = false;
+
+    async function initAudio() {
+        try {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)({
+                    latencyHint: 'interactive',
+                    sampleRate: 48000
+                });
+                const blob = new Blob([WORKLET], { type: 'application/javascript' });
+                await audioCtx.audioWorklet.addModule(URL.createObjectURL(blob));
+            }
+            if (audioCtx.state === 'suspended') {
+                await audioCtx.resume();
+            }
+            return true;
+        } catch (e) {
+            console.error('Audio init error:', e);
+            return false;
+        }
+    }
+
+    async function startProcessing() {
+        try {
+            if (isProcessing) return;
+
+            // Request mic
+            stream = await navigator.mediaDevices.getUserMedia({
+                audio: {
+                    autoGainControl: false,
+                    echoCancellation: false,
+                    noiseSuppression: false,
+                    channelCount: 2
+                }
+            });
+
+            // Init audio context
+            if (!await initAudio()) {
+                throw new Error('AudioContext init failed');
+            }
+
+            // Create nodes
+            sourceNode = audioCtx.createMediaStreamSource(stream);
+            processorNode = new AudioWorkletNode(audioCtx, 'hellfireauto', {
+                numberOfOutputs: 1,
+                outputChannelCount: [2]
+            });
+            destNode = audioCtx.createMediaStreamDestination();
+
+            // Connect
+            sourceNode.connect(processorNode);
+            processorNode.connect(destNode);
+
+            // Apply params
+            pushParams();
+
+            isProcessing = true;
+            updateStatus(true);
+            document.getElementById('float-btn').textContent = '🔴';
+            document.getElementById('float-btn').classList.add('active');
+
+            // Hook getUserMedia để trả về stream đã xử lý
+            const newStream = destNode.stream;
+            const originalGUM = navigator.mediaDevices.getUserMedia;
+            
+            navigator.mediaDevices.getUserMedia = async function(constraints) {
+                if (constraints.audio && isProcessing) {
+                    const tracks = newStream.getTracks();
+                    const streamCopy = new MediaStream(tracks.map(t => t.clone()));
+                    return streamCopy;
+                }
+                return await originalGUM.call(navigator.mediaDevices, constraints);
+            };
+
+            console.log('✅ Audio processing started');
+            return true;
+
+        } catch (e) {
+            console.error('Start processing error:', e);
+            updateStatus(false);
+            return false;
+        }
+    }
+
+    function stopProcessing() {
+        try {
+            if (sourceNode) {
+                sourceNode.disconnect();
+                sourceNode = null;
+            }
+            if (processorNode) {
+                processorNode.disconnect();
+                processorNode = null;
+            }
+            if (destNode) {
+                destNode.disconnect();
+                destNode = null;
+            }
+            if (stream) {
+                stream.getTracks().forEach(t => t.stop());
+                stream = null;
+            }
+            if (audioCtx && audioCtx.state === 'running') {
+                audioCtx.suspend();
+            }
+            isProcessing = false;
+            updateStatus(false);
+            document.getElementById('float-btn').textContent = '🎤';
+            document.getElementById('float-btn').classList.remove('active');
+            console.log('✅ Audio processing stopped');
+        } catch (e) {
+            console.error('Stop processing error:', e);
+        }
+    }
+
+    function pushParams() {
+        if (!processorNode || !audioCtx) return;
+        try {
+            const t = audioCtx.currentTime;
+            const mp = processorNode.parameters;
+            mp.get('preGain').setTargetAtTime(P.preGain, t, 0.015);
+            mp.get('drive').setTargetAtTime(P.drive, t, 0.015);
+            mp.get('crush').setTargetAtTime(P.crush, t, 0.015);
+            mp.get('width').setTargetAtTime(P.width, t, 0.015);
+            mp.get('postGain').setTargetAtTime(P.postGain, t, 0.015);
+            mp.get('bass').setTargetAtTime(P.bass, t, 0.015);
+            mp.get('treble').setTargetAtTime(P.treble, t, 0.015);
+            mp.get('echo').setTargetAtTime(P.echo, t, 0.015);
+            mp.get('gateThreshold').setTargetAtTime(P.gateThreshold, t, 0.015);
+            mp.get('deEsser').setTargetAtTime(P.deEsser, t, 0.015);
+        } catch (e) {
+            console.warn('Push params error:', e);
+        }
+    }
+
+    function updateStatus(active) {
+        const dot = document.getElementById('status-dot');
+        const text = document.getElementById('status-text');
+        if (dot) {
+            dot.className = 'status-dot';
+            if (active) dot.classList.add('active');
+            if (isAutoMode) dot.classList.add('auto');
+        }
+        if (text) {
+            if (active && isAutoMode) {
+                text.textContent = '🤖 AUTO';
+                text.style.color = '#ffaa00';
+            } else if (active) {
+                text.textContent = 'BẬT';
+                text.style.color = '#00ff88';
+            } else {
+                text.textContent = 'TẮT';
+                text.style.color = '#888';
+            }
+        }
+    }
+
+    // ======== UI CONTROLS ========
+    function buildUI() {
+        // Auto toggle
+        const autoToggle = document.getElementById('auto-toggle');
+        autoToggle.onclick = () => {
+            isAutoMode = !isAutoMode;
+            autoToggle.classList.toggle('active', isAutoMode);
+            document.getElementById('float-btn').classList.toggle('auto', isAutoMode);
+            updateStatus(isProcessing);
+            
+            if (isAutoMode && !isProcessing) {
+                // Tự động bật xử lý khi bật auto
+                startProcessing();
+            } else if (!isAutoMode && isProcessing) {
+                // Nếu tắt auto thì tắt xử lý luôn
+                stopProcessing();
+            }
+            
+            console.log(isAutoMode ? '✅ AUTO mode ON' : '❌ AUTO mode OFF');
+        };
+
+        // Presets
+        const presetGrid = document.getElementById('preset-grid');
+        Object.keys(PRESETS).forEach(name => {
+            const btn = document.createElement('button');
+            btn.className = 'preset-btn';
+            btn.textContent = name;
+            btn.onclick = () => {
+                selectedPreset = name;
+                applyConfig(PRESETS[name]);
+                document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                console.log('✅ Applied preset:', name);
+            };
+            presetGrid.appendChild(btn);
+        });
+
+        // Controls
+        const container = document.getElementById('controls-container');
+        const params = [
+            { id: 'preGain', label: '🔊 Pre Gain', default: 1, step: 0.1 },
+            { id: 'drive', label: '🔥 Drive', default: 0.15, step: 0.01 },
+            { id: 'crush', label: '💥 Crush', default: 0, step: 0.01 },
+            { id: 'width', label: '📢 Width', default: 0.15, step: 0.01 },
+            { id: 'postGain', label: '⚡ Post Gain', default: 1.5, step: 0.1 },
+            { id: 'bass', label: '🎸 Bass', default: 0.15, step: 0.01 },
+            { id: 'treble', label: '🎵 Treble', default: 0.25, step: 0.01 },
+            { id: 'echo', label: '🔊 Echo', default: 0.08, step: 0.01 },
+            { id: 'gateThreshold', label: '🔇 Gate', default: 0.008, step: 0.001 },
+            { id: 'deEsser', label: '🗣️ DeEsser', default: 0.3, step: 0.01 }
+        ];
+
+        params.forEach(param => {
+            const group = document.createElement('div');
+            group.className = 'control-group';
+            
+            const label = document.createElement('div');
+            label.className = 'control-label';
+            
+            const labelText = document.createElement('span');
+            labelText.textContent = param.label;
+            
+            const inputNumber = document.createElement('input');
+            inputNumber.type = 'number';
+            inputNumber.id = `num-${param.id}`;
+            inputNumber.value = param.default;
+            inputNumber.step = param.step;
+            
+            const labelRight = document.createElement('div');
+            labelRight.style.display = 'flex';
+            labelRight.style.gap = '6px';
+            labelRight.style.alignItems = 'center';
+            const valueSpan = document.createElement('span');
+            valueSpan.id = `val-${param.id}`;
+            valueSpan.textContent = param.default.toFixed(param.step < 0.1 ? 3 : 1);
+            labelRight.appendChild(valueSpan);
+            labelRight.appendChild(inputNumber);
+            
+            label.appendChild(labelText);
+            label.appendChild(labelRight);
+            
+            const range = document.createElement('input');
+            range.type = 'range';
+            range.id = `sl-${param.id}`;
+            range.min = 0;
+            range.max = 1000;
+            range.step = 1;
+            
+            const toSlider = (val) => {
+                if (param.id === 'preGain') return val / 1000;
+                if (param.id === 'postGain') return val / 20;
+                if (param.id === 'gateThreshold') return val / 0.05;
+                return val * 1000;
+            };
+            const fromSlider = (val) => {
+                if (param.id === 'preGain') return val * 1000;
+                if (param.id === 'postGain') return val * 20;
+                if (param.id === 'gateThreshold') return val * 0.05;
+                return val / 1000;
+            };
+            
+            range.value = toSlider(param.default);
+            range.style.setProperty('--v', (range.value / 1000 * 100) + '%');
+            
+            range.oninput = () => {
+                const val = fromSlider(parseFloat(range.value));
+                P[param.id] = val;
+                inputNumber.value = val.toFixed(param.step < 0.1 ? 3 : 1);
+                valueSpan.textContent = val.toFixed(param.step < 0.1 ? 3 : 1);
+                range.style.setProperty('--v', (range.value / 1000 * 100) + '%');
+                pushParams();
+            };
+            
+            inputNumber.oninput = () => {
+                let val = parseFloat(inputNumber.value) || 0;
+                P[param.id] = val;
+                range.value = toSlider(val);
+                valueSpan.textContent = val.toFixed(param.step < 0.1 ? 3 : 1);
+                range.style.setProperty('--v', (range.value / 1000 * 100) + '%');
+                pushParams();
+            };
+            
+            group.appendChild(label);
+            group.appendChild(range);
+            container.appendChild(group);
+        });
+    }
+
+    function applyConfig(config) {
+        Object.assign(P, config);
+        // Update UI
+        const params = ['preGain', 'drive', 'crush', 'width', 'postGain', 'bass', 'treble', 'echo', 'gateThreshold', 'deEsser'];
+        params.forEach(id => {
+            const range = document.getElementById(`sl-${id}`);
+            const num = document.getElementById(`num-${id}`);
+            const val = document.getElementById(`val-${id}`);
+            if (range && num && val) {
+                let sliderVal = P[id];
+                if (id === 'preGain') sliderVal = P[id] / 1000;
+                else if (id === 'postGain') sliderVal = P[id] / 20;
+                else if (id === 'gateThreshold') sliderVal = P[id] / 0.05;
+                else sliderVal = P[id] * 1000;
+                range.value = Math.min(1000, Math.max(0, sliderVal));
+                range.style.setProperty('--v', (range.value / 1000 * 100) + '%');
+                num.value = P[id].toFixed(id === 'gateThreshold' ? 3 : 2);
+                val.textContent = P[id].toFixed(id === 'gateThreshold' ? 3 : 2);
+            }
+        });
+        pushParams();
+    }
+
+    // ======== OVERLAY TOGGLE ========
+    let panelVisible = false;
+
+    function togglePanel() {
+        panelVisible = !panelVisible;
+        document.getElementById('tool-panel').classList.toggle('show', panelVisible);
+    }
+
+    // ======== INIT ========
+    document.addEventListener('DOMContentLoaded', () => {
+        buildUI();
+
+        // Floating button
+        const floatBtn = document.getElementById('float-btn');
+        floatBtn.onclick = () => {
+            if (isProcessing) {
+                stopProcessing();
+                if (isAutoMode) {
+                    isAutoMode = false;
+                    document.getElementById('auto-toggle').classList.remove('active');
+                    floatBtn.classList.remove('auto');
+                }
+            } else {
+                startProcessing();
+            }
+        };
+
+        // Long press to show panel
+        let longPressTimer = null;
+        floatBtn.addEventListener('pointerdown', () => {
+            longPressTimer = setTimeout(() => {
+                togglePanel();
+                longPressTimer = null;
+            }, 500);
+        });
+        floatBtn.addEventListener('pointerup', () => {
+            if (longPressTimer) {
+                clearTimeout(longPressTimer);
+                longPressTimer = null;
+            }
+        });
+        floatBtn.addEventListener('pointerleave', () => {
+            if (longPressTimer) {
+                clearTimeout(longPressTimer);
+                longPressTimer = null;
+            }
+        });
+
+        // Close panel
+        document.getElementById('close-btn').onclick = () => {
+            document.getElementById('tool-panel').classList.remove('show');
+            panelVisible = false;
+        };
+
+        // Click outside to close panel
+        document.addEventListener('click', (e) => {
+            const panel = document.getElementById('tool-panel');
+            const btn = document.getElementById('float-btn');
+            if (panelVisible && !panel.contains(e.target) && e.target !== btn) {
+                panel.classList.remove('show');
+                panelVisible = false;
+            }
+        });
+
+        console.log('✅ HELLFIRE AUTO READY');
+        console.log('🔴 Bấm nút để bật/tắt xử lý');
+        console.log('🤖 Bật AUTO để tự động áp dụng khi call');
+        console.log('🔵 Giữ nút để mở tool');
+    });
+
+})();
+</script>
+</body>
+</html>
